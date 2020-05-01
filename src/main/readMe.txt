@@ -39,4 +39,71 @@ springData
                   ddl-auto:update----每次运行程序，没有表格会新建表格，表内有数据不会清空，只会更新
                   ddl-auto:validate----运行程序会校验数据与数据库的字段类型是否相同，不同会报错
         spring.jpa.show-sql=true
+数据的操作
+    mybatis
+        1.正常写sql语句
+        2.动态拼接sql
+            if标签：条件判断下的拼接
+            where标签：代替sql语句的where
+                   <select id="findActiveBlogWithTitleLike"
+                        resultType="Blog">
+                     SELECT * FROM BLOG
+                     WHERE state = ‘ACTIVE’
+                     <if test="title != null">
+                       AND title like #{title}
+                     </if>
+                   </select>
+            choose标签：多个条件下的选择拼接
+             <select id="findActiveBlogLike"
+                      resultType="Blog">
+                   SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+                   <choose>
+                     <when test="title != null">
+                       AND title like #{title}
+                     </when>
+                     <when test="author != null and author.name != null">
+                       AND author_name like #{author.name}
+                     </when>
+                     <otherwise>
+                       AND featured = 1
+                     </otherwise>
+                   </choose>
+             </select>
+             trim标签：给sql语句段加前缀，后缀，prefix，suffix分别为前缀，后缀，prefixOverrides，suffixOverrides为将sql语句段首部，尾部去掉
+                <select id="dynamicTrimTest" parameterType="Blog" resultType="Blog">
+                    select * from t_blog
+                    <trim prefix="where" prefixOverrides="and |or">
+                        <if test="title != null">
+                            title = #{title}
+                        </if>
+                        <if test="content != null">
+                            and content = #{content}
+                        </if>
+                        <if test="owner != null">
+                            or owner = #{owner}
+                        </if>
+                    </trim>
+                </select>
+             set标签：代替sql语句的set
+              update Author
+                     <set>
+                       <if test="username != null">username=#{username},</if>
+                       <if test="password != null">password=#{password},</if>
+                       <if test="email != null">email=#{email},</if>
+                       <if test="bio != null">bio=#{bio}</if>
+                     </set>
+                   where id=#{id}
+              foreach标签：sql语句的循环动态插入标签
+              item参数：在循环过程中，给循环的元素起的别名
+              index参数：指定一个名字，用于表示在迭代过程中，每次迭代到的位置
+              open参数：循环拼接语句以什么开始
+              close参数：循环拼接语句以什么结束
+              collection：当循环对象为list时，该参数值为list，当循环对象为array时，参数值为array，当循环对象为map时，参数值为循环对象对应的key值
+              SELECT *
+                    FROM POST P
+                    WHERE ID in
+                    <foreach item="item" index="index" collection="list"
+                        open="(" separator="," close=")">
+                          #{item}
+                    </foreach>
 
