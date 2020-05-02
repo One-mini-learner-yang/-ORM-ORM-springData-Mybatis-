@@ -106,5 +106,72 @@ springData
                         open="(" separator="," close=")">
                           #{item}
                     </foreach>
+    springData
+        springData是基于Jpa的一个框架，使用DAO层要建立相应调用实体类与对应表的关系
+        例如：
+            @Table(name="JPA_ORDERS")
+            @Entity
+            public class Order {
+
+                @GeneratedValue(strategy=GenerationType.IDENTITY)
+                @Id
+                private Integer id;
+
+                @Column(name="ORDER_NAME")
+                private String orderName;
+            }
+        @Table：声明该实体类与表的关系，参数表明
+        @Entity：表明该类为一个实体类
+        @GeneratedValue：自动生成策略（针对于主键），参数strategy为生成策略
+        strategy的值为以下可能
+        1.GenerationType.IDENTITY：对于支持主键自增长的数据库（如mysql），主键采用主键自增长
+        2.GenerationType.SEQUENCE：对于不支持主键自增长的数据库（如oracle），主键采用序列的方式
+        3.GenerationType.TABLE：采用一个外加表表来实现主键的自增，经常配合@TableGenerator（指定生成序列表）使用
+        例如：
+                @Id
+                @GeneratedValue(strategy = GenerationType.TABLE, generator = "roleSeq")
+                @TableGenerator(name = "roleSeq", allocationSize = 1, table = "seq_table", pkColumnName = "seq_id", valueColumnName = "seq_count")
+                private Integer id;
+                @GeneratedValue的属性generator指定生成策略的名，@TableGenerator指定生成相应的序列表，其属性allocationSize为增长的步长，pkColumnName为该主键生成策略对应键值的名称
+                valueColumnName为该主键当前的值，会不断根据步长自动增加
+        若不使用@TableGenerator的话，Jpa会自动生成一个名为sequence的表(SEQ_NAME,SEQ_COUNT)，该表一般为2个字段，一个为改生成策略的名称，另一个为该表的最大序号，会不断累加
+        4.GenerationType.AUTO：Jpa会自动根据数据库选择以上三种方式，该做法也是比较常用的方法
+        @Column：说明该属性与哪个字段对应
+        实现数据访问的方法
+            1.使用springData封装的方法
+                接口JpaRepository封装了一些方法
+                    findAll()：查询全部
+                    findOne()：查询一条，参数主键值
+                    save()：保存一条数据
+                    delete()：删除一条数据
+                    count()：数据的数量
+                    exists()：判断数据是否存在，参数主键值
+            2.利用自定义方法命名规则查询
+                在DAO接口处（该接口继承JpaRepository<T(操作的实体类类型)，ID（操作的实体类主键类型）>和JpaSpecificationExecutor<T(操作的实体类类型)>）按照命名规则自定义方法
+                命名规则：
+                    1.单一条件：findBy +属性名（实体类中的属性名），例如：public User findById(Long id);
+                               findBy +属性名 +like（模糊查询）,例如：public User findByUserNameLike（String userName）;
+                    2.多个条件：findBy +属性名 +查询方式（若为精确查询，此处不写，若为模糊查询，此处写like） +多条件连接符（and/or） +属性名 +查询方式
+                               例如：public User findByIdAndUsernameLike(Long id,String userName);
+            3.自定义jpql/sql
+            jpql：是Jpa针对于对象操作的数据库查询语言，类似sql，区别是jpql针对于实体对象，而sql针对于数据库的对应字段
+            本文以查询和更新举例二者差距
+            查询：
+                jpql：from User where userName=?
+                sql：select * from c_user where c_userName=?
+            更新：
+                jpql：Update User set userName=? where userId=?
+                sql：update c_user set c_userName=? where c_userId=?
+            在DAO接口定义的方法前使用@Query注解
+            @Query的属性：
+                value：jpql/sql语句
+                nativeQuery：为true则当前以sql方式及进行操作，为false则当前以jpql方式进行操作，默认为false
+            占位符的赋值
+                在问号后直接写对应方法参数的位置即可
+                例如：
+                    @Query(value="Update User set userName=?1 where userId=?2")
+                    public void update(String userName,Long id);
+            4.动态拼接sql
+
 
 
